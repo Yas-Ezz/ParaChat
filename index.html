@@ -3,355 +3,277 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Private Chat App</title>
-    <!-- Tailwind CSS CDN -->
+    <title>AsyncChat - Private Messaging</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Inter font from Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f0f2f5;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
-        /* Custom scrollbar for chat messages */
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .message-animation {
+            animation: slideInUp 0.3s ease-out;
+        }
+        
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .typing-indicator {
+            animation: pulse 1.5s infinite;
+        }
+        
+        .connection-status {
+            transition: all 0.3s ease;
+        }
+        
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
         .chat-messages::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
         }
+        
         .chat-messages::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
         }
+        
         .chat-messages::-webkit-scrollbar-thumb {
-            background: #888;
+            background: rgba(255, 255, 255, 0.3);
             border-radius: 10px;
         }
+        
         .chat-messages::-webkit-scrollbar-thumb:hover {
-            background: #555;
+            background: rgba(255, 255, 255, 0.5);
         }
-        /* Custom scrollbar for past conversations */
-        .past-conversations::-webkit-scrollbar {
-            width: 8px;
+        
+        .async-demo-panel {
+            background: rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .past-conversations::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-        .past-conversations::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 10px;
-        }
-        .past-conversations::-webkit-scrollbar-thumb:hover {
-            background: #555;
+        
+        .code-block {
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 4px solid #10b981;
         }
     </style>
 </head>
-<body class="flex flex-col h-screen antialiased">
-    <div class="flex flex-1 overflow-hidden">
-        <!-- Left Panel: Current Chat -->
-        <div class="flex flex-col w-full md:w-3/4 bg-white shadow-lg rounded-lg m-4 p-4">
-            <div class="flex items-center justify-between pb-4 border-b border-gray-200">
-                <h1 class="text-2xl font-bold text-gray-800">Current Chat</h1>
-                <span id="current-user-id" class="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-full">Loading User ID...</span>
-            </div>
-
-            <!-- Chat Messages Display Area -->
-            <div id="chat-messages" class="chat-messages flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 rounded-lg mt-4">
-                <!-- Chat messages will be appended here by JavaScript -->
-                <div class="flex justify-start">
-                    <div class="bg-blue-500 text-white p-3 rounded-xl max-w-xs shadow-md">
-                        <p>Welcome to your chat! Start by selecting a conversation or sending a message.</p>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Main Chat Interface -->
+        <div class="lg:col-span-2 glass-effect rounded-2xl p-6 shadow-2xl">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                        <i class="fas fa-comments text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">AsyncChat</h1>
+                        <p class="text-purple-200 text-sm">Demonstrating Async JavaScript</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div id="connection-status" class="connection-status flex items-center space-x-2 px-3 py-1 rounded-full bg-green-500/20 text-green-300">
+                        <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <span class="text-sm font-medium">Connected</span>
+                    </div>
+                    <div id="current-user-display" class="text-purple-200 text-sm font-medium bg-white/10 px-3 py-1 rounded-full">
+                        Loading...
                     </div>
                 </div>
             </div>
 
-            <!-- Message Input Area -->
-            <div class="flex items-center mt-4 pt-4 border-t border-gray-200">
-                <input type="text" id="message-input" placeholder="Type your message..."
-                       class="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out">
-                <button id="send-button"
-                        class="ml-3 px-6 py-3 bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-200 ease-in-out transform hover:scale-105">
-                    Send
+            <!-- Active Chat Display -->
+            <div class="mb-6">
+                <div id="active-chat-header" class="flex items-center space-x-3 p-4 bg-white/5 rounded-xl">
+                    <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-white"></i>
+                    </div>
+                    <div>
+                        <h3 id="chat-partner-name" class="text-white font-semibold">Select a conversation</h3>
+                        <p class="text-purple-200 text-sm">Choose someone to chat with</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages Container -->
+            <div id="chat-messages" class="chat-messages h-96 overflow-y-auto mb-6 p-4 bg-black/10 rounded-xl">
+                <div class="flex justify-center">
+                    <div class="bg-white/10 text-purple-200 px-4 py-2 rounded-full text-sm">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Welcome! Start a conversation to see async patterns in action
+                    </div>
+                </div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div id="typing-indicator" class="typing-indicator hidden mb-4 flex items-center space-x-2 text-purple-300">
+                <div class="flex space-x-1">
+                    <div class="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
+                    <div class="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                    <div class="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                </div>
+                <span class="text-sm">Someone is typing...</span>
+            </div>
+
+            <!-- Message Input -->
+            <div class="flex items-center space-x-3">
+                <div class="flex-1 relative">
+                    <input 
+                        type="text" 
+                        id="message-input" 
+                        placeholder="Type your message..." 
+                        class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                    >
+                    <button id="emoji-btn" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-purple-300 hover:text-white transition-colors">
+                        <i class="fas fa-smile"></i>
+                    </button>
+                </div>
+                <button 
+                    id="send-button" 
+                    class="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <i class="fas fa-paper-plane"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Right Panel: Past Conversations -->
-        <div class="hidden md:flex flex-col w-1/4 bg-white shadow-lg rounded-lg m-4 p-4">
-            <h2 class="text-2xl font-bold text-gray-800 pb-4 border-b border-gray-200">Past Conversations</h2>
-            <div id="past-conversations" class="past-conversations flex-1 overflow-y-auto p-4 space-y-2 mt-4 bg-gray-50 rounded-lg">
-                <!-- Past conversations will be listed here by JavaScript -->
-                <div class="p-3 bg-gray-100 rounded-lg text-gray-700 cursor-pointer hover:bg-gray-200 transition duration-150 ease-in-out">
-                    No past conversations yet.
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Conversations Panel -->
+            <div class="glass-effect rounded-2xl p-6 shadow-2xl">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center">
+                    <i class="fas fa-history mr-2 text-purple-400"></i>
+                    Conversations
+                </h2>
+                
+                <div id="conversations-list" class="space-y-2 mb-4 max-h-48 overflow-y-auto">
+                    <div class="p-3 bg-white/5 rounded-lg text-purple-200 text-center">
+                        No conversations yet
+                    </div>
+                </div>
+
+                <!-- New Chat -->
+                <div class="border-t border-white/10 pt-4">
+                    <h3 class="text-white font-semibold mb-3">Start New Chat</h3>
+                    <div class="space-y-3">
+                        <input 
+                            type="text" 
+                            id="new-chat-input" 
+                            placeholder="Enter User ID" 
+                            class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                        >
+                        <button 
+                            id="start-chat-btn" 
+                            class="w-full px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 text-sm font-medium"
+                        >
+                            <i class="fas fa-plus mr-2"></i>Start Chat
+                        </button>
+                    </div>
                 </div>
             </div>
-            <!-- New Chat Initiation Area -->
-            <div class="mt-4 pt-4 border-t border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-700 mb-2">Start a New Chat</h3>
-                <input type="text" id="new-chat-partner-input" placeholder="Enter partner's User ID"
-                       class="w-full p-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200 ease-in-out">
-                <button id="start-new-chat-button"
-                        class="mt-3 w-full px-4 py-2 bg-green-600 text-white rounded-xl shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-200 ease-in-out transform hover:scale-105">
-                    Start Chat
-                </button>
+
+            <!-- Async Demo Panel -->
+            <div class="async-demo-panel rounded-2xl p-6 shadow-2xl">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center">
+                    <i class="fas fa-code mr-2 text-yellow-400"></i>
+                    Async Patterns Demo
+                </h2>
+                
+                <div class="space-y-4">
+                    <button id="demo-callbacks" class="w-full p-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-lg text-red-200 transition-all duration-200">
+                        <i class="fas fa-arrow-right mr-2"></i>
+                        Demo: Callbacks
+                    </button>
+                    
+                    <button id="demo-promises" class="w-full p-3 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-lg text-blue-200 transition-all duration-200">
+                        <i class="fas fa-arrow-right mr-2"></i>
+                        Demo: Promises
+                    </button>
+                    
+                    <button id="demo-async-await" class="w-full p-3 bg-green-500/20 hover:bg-green-500/30 border border-green-500/30 rounded-lg text-green-200 transition-all duration-200">
+                        <i class="fas fa-arrow-right mr-2"></i>
+                        Demo: Async/Await
+                    </button>
+                </div>
+
+                <!-- Demo Output -->
+                <div id="demo-output" class="mt-4 p-3 bg-black/20 rounded-lg text-purple-200 text-sm font-mono min-h-[100px] hidden">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-terminal mr-2 text-green-400"></i>
+                        <span class="text-green-400">Console Output:</span>
+                    </div>
+                    <div id="demo-content"></div>
+                </div>
+            </div>
+
+            <!-- Status Panel -->
+            <div class="glass-effect rounded-2xl p-6 shadow-2xl">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center">
+                    <i class="fas fa-chart-line mr-2 text-blue-400"></i>
+                    App Status
+                </h2>
+                
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between items-center">
+                        <span class="text-purple-200">Messages Sent:</span>
+                        <span id="messages-count" class="text-white font-semibold">0</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-purple-200">Active Chats:</span>
+                        <span id="active-chats-count" class="text-white font-semibold">0</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-purple-200">Response Time:</span>
+                        <span id="response-time" class="text-white font-semibold">--ms</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, setDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="glass-effect rounded-2xl p-8 text-center">
+            <div class="loading-spinner w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full mx-auto mb-4"></div>
+            <p class="text-white font-semibold">Processing...</p>
+        </div>
+    </div>
 
-        // Global variables for Firebase instances
-        let app;
-        let db;
-        let auth;
-        let currentUserId = null;
-        let currentChatPartnerId = null; // The ID of the user currently chatting with
+    <!-- Notification Toast -->
+    <div id="notification-toast" class="fixed top-4 right-4 glass-effect rounded-lg p-4 text-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50">
+        <div class="flex items-center space-x-3">
+            <i id="toast-icon" class="fas fa-info-circle text-blue-400"></i>
+            <span id="toast-message">Notification message</span>
+        </div>
+    </div>
 
-        // Get Firebase config and app ID from the environment
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-
-        // Initialize Firebase
-        try {
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-            console.log("Firebase initialized successfully.");
-        } catch (error) {
-            console.error("Error initializing Firebase:", error);
-            document.getElementById('current-user-id').textContent = 'Firebase Init Error!';
-        }
-
-        // Authenticate user and set up auth state listener
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUserId = user.uid;
-                document.getElementById('current-user-id').textContent = `Your User ID: ${currentUserId}`;
-                console.log("User signed in:", currentUserId);
-
-                // Fetch and display past conversations
-                fetchPastConversations();
-
-                // Set a default chat partner or logic to select one
-                // For demonstration, let's assume a fixed partner or prompt for one
-                // In a real app, you'd have a way to select or initiate a chat.
-                // For now, if no partner is selected, messages won't send to anyone specific.
-                // You might want to add a UI to select a partner.
-                // For this example, let's just make sure the send button is enabled.
-                document.getElementById('send-button').disabled = false;
-
-            } else {
-                console.log("No user signed in. Attempting anonymous sign-in or custom token sign-in.");
-                try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                        console.log("Signed in with custom token.");
-                    } else {
-                        await signInAnonymously(auth);
-                        console.log("Signed in anonymously.");
-                    }
-                } catch (error) {
-                    console.error("Error during authentication:", error);
-                    document.getElementById('current-user-id').textContent = 'Auth Error!';
-                }
-            }
-        });
-
-        // Function to display messages in the chat window
-        function displayMessage(message, isSentByMe) {
-            const chatMessagesDiv = document.getElementById('chat-messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `flex ${isSentByMe ? 'justify-end' : 'justify-start'}`;
-
-            const messageBubble = document.createElement('div');
-            messageBubble.className = `p-3 rounded-xl max-w-xs shadow-md ${isSentByMe ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'}`;
-            messageBubble.textContent = message.text;
-
-            messageDiv.appendChild(messageBubble);
-            chatMessagesDiv.appendChild(messageDiv);
-
-            // Scroll to the bottom of the chat
-            chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
-        }
-
-        // Function to send a message
-        async function sendMessage() {
-            const messageInput = document.getElementById('message-input');
-            const messageText = messageInput.value.trim();
-
-            if (!messageText || !currentUserId || !currentChatPartnerId) {
-                console.warn("Message, current user ID, or chat partner ID is missing. Cannot send message.");
-                // Provide user feedback instead of alert
-                showInfoMessage("Please type a message and select a chat partner to send.", "warning");
-                return;
-            }
-
-            try {
-                // Determine the conversation ID (lexicographical order of user IDs)
-                const conversationId = [currentUserId, currentChatPartnerId].sort().join('_');
-                const messagesRef = collection(db, `artifacts/${appId}/public/data/conversations/${conversationId}/messages`);
-
-                await addDoc(messagesRef, {
-                    text: messageText,
-                    senderId: currentUserId,
-                    receiverId: currentChatPartnerId,
-                    timestamp: serverTimestamp()
-                });
-
-                // Update last message in past conversations for both sender and receiver
-                await updateLastMessageInConversation(currentUserId, currentChatPartnerId, messageText);
-                await updateLastMessageInConversation(currentChatPartnerId, currentUserId, messageText);
-
-                messageInput.value = ''; // Clear input field
-                console.log("Message sent successfully.");
-            } catch (error) {
-                console.error("Error sending message:", error);
-                showInfoMessage("Failed to send message. Please try again.", "error");
-            }
-        }
-
-        // Function to update the last message in the past conversations list
-        async function updateLastMessageInConversation(user1Id, user2Id, lastMessageText) {
-            const conversationDocRef = doc(db, `artifacts/${appId}/users/${user1Id}/conversations`, user2Id);
-            await setDoc(conversationDocRef, {
-                partnerId: user2Id,
-                lastMessage: lastMessageText,
-                lastMessageTimestamp: serverTimestamp()
-            }, { merge: true }); // Use merge to update existing or create if not exists
-        }
-
-        // Function to fetch and display past conversations
-        function fetchPastConversations() {
-            if (!currentUserId) {
-                console.warn("Current user ID not available to fetch past conversations.");
-                return;
-            }
-
-            const conversationsRef = collection(db, `artifacts/${appId}/users/${currentUserId}/conversations`);
-            const q = query(conversationsRef, orderBy("lastMessageTimestamp", "desc"));
-
-            onSnapshot(q, (snapshot) => {
-                const pastConversationsDiv = document.getElementById('past-conversations');
-                pastConversationsDiv.innerHTML = ''; // Clear existing list
-
-                if (snapshot.empty) {
-                    pastConversationsDiv.innerHTML = `
-                        <div class="p-3 bg-gray-100 rounded-lg text-gray-700">
-                            No past conversations yet. Start a new one!
-                        </div>
-                    `;
-                }
-
-                snapshot.forEach((doc) => {
-                    const conversation = doc.data();
-                    const partnerId = conversation.partnerId;
-                    const lastMessage = conversation.lastMessage || "No messages yet.";
-                    const conversationItem = document.createElement('div');
-                    conversationItem.className = 'p-3 bg-gray-100 rounded-lg text-gray-700 cursor-pointer hover:bg-gray-200 transition duration-150 ease-in-out';
-                    conversationItem.innerHTML = `
-                        <p class="font-semibold">Chat with: ${partnerId}</p>
-                        <p class="text-sm text-gray-500 truncate">${lastMessage}</p>
-                    `;
-                    conversationItem.addEventListener('click', () => {
-                        selectConversation(partnerId);
-                    });
-                    pastConversationsDiv.appendChild(conversationItem);
-                });
-            }, (error) => {
-                console.error("Error fetching past conversations:", error);
-                showInfoMessage("Error loading past conversations.", "error");
-            });
-        }
-
-        // Function to select a conversation and load its messages
-        function selectConversation(partnerId) {
-            if (currentChatPartnerId === partnerId) {
-                console.log(`Already chatting with ${partnerId}`);
-                return; // Already selected
-            }
-
-            currentChatPartnerId = partnerId;
-            document.getElementById('chat-messages').innerHTML = ''; // Clear current chat display
-            console.log(`Selected chat with: ${currentChatPartnerId}`);
-
-            // Update the current chat title
-            document.querySelector('.pb-4 h1').textContent = `Chat with: ${currentChatPartnerId}`;
-
-            // Determine the conversation ID
-            const conversationId = [currentUserId, currentChatPartnerId].sort().join('_');
-            const messagesRef = collection(db, `artifacts/${appId}/public/data/conversations/${conversationId}/messages`);
-            const q = query(messagesRef, orderBy("timestamp", "asc"));
-
-            // Listen for new messages in the selected conversation
-            onSnapshot(q, (snapshot) => {
-                const chatMessagesDiv = document.getElementById('chat-messages');
-                chatMessagesDiv.innerHTML = ''; // Clear current messages to re-render all
-
-                snapshot.forEach((doc) => {
-                    const message = doc.data();
-                    const isSentByMe = message.senderId === currentUserId;
-                    displayMessage(message, isSentByMe);
-                });
-            }, (error) => {
-                console.error("Error fetching messages:", error);
-                showInfoMessage("Error loading chat messages.", "error");
-            });
-        }
-
-        // Event listener for sending messages
-        document.getElementById('send-button').addEventListener('click', sendMessage);
-        document.getElementById('message-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-
-        // Function to show a temporary info/error message
-        function showInfoMessage(message, type = "info") {
-            const messageContainer = document.createElement('div');
-            messageContainer.className = `fixed bottom-4 right-4 p-4 rounded-lg shadow-lg text-white z-50`;
-
-            if (type === "error") {
-                messageContainer.classList.add('bg-red-500');
-            } else if (type === "warning") {
-                messageContainer.classList.add('bg-yellow-500');
-            } else {
-                messageContainer.classList.add('bg-blue-500');
-            }
-
-            messageContainer.textContent = message;
-            document.body.appendChild(messageContainer);
-
-            setTimeout(() => {
-                messageContainer.remove();
-            }, 3000); // Message disappears after 3 seconds
-        }
-
-        // Event listener for starting a new chat via input field
-        document.getElementById('start-new-chat-button').addEventListener('click', () => {
-            const newChatPartnerInput = document.getElementById('new-chat-partner-input');
-            const partnerId = newChatPartnerInput.value.trim();
-
-            if (partnerId && partnerId !== currentUserId) {
-                selectConversation(partnerId);
-                newChatPartnerInput.value = ''; // Clear input
-            } else if (partnerId === currentUserId) {
-                showInfoMessage("You cannot chat with yourself.", "warning");
-            } else {
-                showInfoMessage("Please enter a valid User ID to start a chat.", "warning");
-            }
-        });
-
-        // Add keypress listener for the new chat partner input
-        document.getElementById('new-chat-partner-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                document.getElementById('start-new-chat-button').click(); // Trigger button click
-            }
-        });
-
-    </script>
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>
